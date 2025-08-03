@@ -200,11 +200,34 @@
             </div>
         </div>
         
+        <!-- Logo Personalizzato -->
+        <div style="margin-bottom: 15px; padding: 15px; background: #333; border-radius: 10px;">
+            <label style="color: #b3b3b3; font-size: 14px; margin-bottom: 10px; display: block;">Logo Personalizzato:</label>
+            <div id="logoPreview" style="text-align: center; margin-bottom: 10px; min-height: 60px; display: flex; align-items: center; justify-content: center; background: #444; border-radius: 8px; border: 2px dashed #666;">
+                <span style="color: #888; font-size: 12px;">Nessun logo caricato</span>
+            </div>
+            <div style="display: flex; gap: 10px; margin-bottom: 10px;">
+                <input type="file" id="logoFile" accept=".png,.svg" style="display: none;" onchange="previewLogo()">
+                <button onclick="document.getElementById('logoFile').click()" style="flex: 1; background: #007aff; border: none; color: #ffffff; padding: 10px; border-radius: 8px; cursor: pointer; font-size: 12px;">
+                    <i class="fas fa-upload" style="margin-right: 5px;"></i>Carica Logo
+                </button>
+                <button onclick="removeLogo()" style="background: #ff3b30; border: none; color: #ffffff; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 12px;">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            <small style="color: #888; font-size: 11px;">Formati supportati: PNG, SVG (max 16MB)</small>
+        </div>
+        
         <div style="text-align: center; padding: 15px; background: #333; border-radius: 10px;">
             <small style="color: #b3b3b3;">Fascia Oraria Attuale: </small>
             <span id="currentTimePeriod" style="background: #1db954; color: #000000; padding: 4px 12px; border-radius: 15px; font-size: 12px; font-weight: 500;">-</span>
         </div>
     </div>
+</div>
+
+<!-- Logo Personalizzato nella Pagina Principale -->
+<div id="mainPageLogoContainer" style="text-align: center; margin-top: 30px; margin-bottom: 20px;">
+    <!-- Logo personalizzato verrà caricato qui -->
 </div>
 
 <!-- Modal per Dispositivi -->
@@ -1102,7 +1125,109 @@
         
         // Initial real-time update after 1 second
         setTimeout(updateRealTimeStatus, 1000);
+        
+        // Load logo status on page load
+        loadLogoStatus();
     });
+    
+    // Logo management functions
+    function loadLogoStatus() {
+        makeApiCall('logo/status')
+            .done(function(data) {
+                if (data.has_logo) {
+                    showLogoPreview(data.logo_url);
+                    showMainPageLogo(data.logo_url);
+                }
+            })
+            .fail(function() {
+                console.log('Errore nel caricamento stato logo');
+            });
+    }
+    
+    function showMainPageLogo(logoUrl) {
+        const mainLogoContainer = document.getElementById('mainPageLogoContainer');
+        if (mainLogoContainer) {
+            mainLogoContainer.innerHTML = '<img src="' + logoUrl + '" style="max-width: 150px; max-height: 60px; object-fit: contain; opacity: 0.8;" alt="Logo personalizzato">';
+        }
+    }
+    
+    function previewLogo() {
+        const fileInput = document.getElementById('logoFile');
+        const file = fileInput.files[0];
+        
+        if (file) {
+            // Validate file type
+            const allowedTypes = ['image/png', 'image/svg+xml'];
+            if (allowedTypes.indexOf(file.type) === -1) {
+                showAlert('Formato file non supportato. Usa PNG o SVG.', 'warning');
+                fileInput.value = '';
+                return;
+            }
+            
+            // Validate file size (16MB)
+            if (file.size > 16 * 1024 * 1024) {
+                showAlert('File troppo grande. Dimensione massima: 16MB.', 'warning');
+                fileInput.value = '';
+                return;
+            }
+            
+            // Upload the file
+            const formData = new FormData();
+            formData.append('logo', file);
+            
+            $.ajax({
+                url: '/api/logo/upload',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                success: function(data) {
+                    if (data.success) {
+                        showAlert(data.message, 'success');
+                        showLogoPreview(data.logo_url);
+                        showMainPageLogo(data.logo_url);
+                    } else {
+                        showAlert(data.error || 'Errore nell upload del logo', 'danger');
+                    }
+                },
+                error: function() {
+                    showAlert('Errore di connessione durante l upload', 'danger');
+                }
+            });
+        }
+    }
+    
+    function showLogoPreview(logoUrl) {
+        const preview = document.getElementById('logoPreview');
+        if (preview) {
+            preview.innerHTML = '<img src="' + logoUrl + '" style="max-width: 100%; max-height: 60px; object-fit: contain;" alt="Logo personalizzato">';
+        }
+    }
+    
+    function removeLogo() {
+        if (confirm('Sei sicuro di voler rimuovere il logo personalizzato?')) {
+            makeApiCall('logo/remove', 'POST')
+                .done(function(data) {
+                    if (data.success) {
+                        showAlert(data.message, 'success');
+                        const preview = document.getElementById('logoPreview');
+                        if (preview) {
+                            preview.innerHTML = '<span style="color: #888; font-size: 12px;">Nessun logo caricato</span>';
+                        }
+                        const mainLogoContainer = document.getElementById('mainPageLogoContainer');
+                        if (mainLogoContainer) {
+                            mainLogoContainer.innerHTML = '';
+                        }
+                        document.getElementById('logoFile').value = '';
+                    } else {
+                        showAlert(data.error || 'Errore nella rimozione del logo', 'danger');
+                    }
+                })
+                .fail(function() {
+                    showAlert('Errore di connessione', 'danger');
+                });
+        }
+    }
     
     // Inizializzazione
     $(document).ready(function() {
