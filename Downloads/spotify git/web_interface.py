@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash, send_from_directory
 import os
 import logging
 import json
@@ -7,6 +7,8 @@ from functools import wraps
 from dotenv import load_dotenv
 from spotify_manager import SpotifyManager
 from gpio_manager import GPIOManager
+from werkzeug.utils import secure_filename
+from version import get_version_info
 
 # Carica le variabili d'ambiente prima di tutto
 load_dotenv()
@@ -15,8 +17,25 @@ app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY', 'default-secret-key-change-this')
 app.logger.setLevel(logging.INFO)
 
-# Password di accesso
+@app.context_processor
+def inject_version():
+    """Rende le informazioni sulla versione disponibili in tutti i template"""
+    return get_version_info()
+
+# Password per l'accesso web
 WEB_PASSWORD = os.getenv('WEB_PASSWORD', 'admin')
+
+# Configurazione upload logo
+UPLOAD_FOLDER = 'static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'svg'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max
+
+# Crea la cartella uploads se non esiste
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def login_required(f):
     """Decoratore per richiedere l'autenticazione"""
@@ -495,7 +514,76 @@ def set_spotify_config():
         })
     except Exception as e:
         logger.error(f"Errore nell'aggiornamento configurazione Spotify: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/logo/upload', methods=['POST'])
+@login_required
+def upload_logo():
+    """Upload di un logo personalizzato"""
+    try:
+        if 'logo' not in request.files:
+            return jsonify({'success': False, 'error': 'Nessun file selezionato'})
+        
+        file = request.files['logo']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'Nessun file selezionato'})
+        
+        if file and allowed_file(file.filename):
+            # Rimuovi il logo esistente se presente
+            for filename in os.listdir(app.config['UPLOAD_FOLDER']):
+                if filename.startswith('custom_logo.'):
+                    os.remove(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+            
+            # Salva il nuovo logo
+            filename = secure_filename(file.filename)
+            extension = filename.rsplit('.', 1)[1].lower()
+            new_filename = f'custom_logo.{extension}'
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], new_filename)
+            file.save(file_path)
+            
+            return jsonify({
+                'success': True, 
+                'message': 'Logo caricato con successo',
+                'logo_url': f'/static/uploads/{new_filename}'
+            })
+        else:
+            return jsonify({'success': False, 'error': 'Formato file non supportato. Usa PNG o SVG.'})
+    
+    except Exception as e:
+        app.logger.error(f"Errore upload logo: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/logo/remove', methods=['POST'])
+@login_required
+def remove_logo():
+    """Rimuove il logo personalizzato"""
+    try:
+        for filename in os.listdir(app.config['UPLOAD_FOLDER']):
+            if filename.startswith('custom_logo.'):
+                os.remove(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        
+        return jsonify({'success': True, 'message': 'Logo rimosso con successo'})
+    
+    except Exception as e:
+        app.logger.error(f"Errore rimozione logo: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/logo/status')
+def logo_status():
+    """Verifica se esiste un logo personalizzato"""
+    try:
+        for filename in os.listdir(app.config['UPLOAD_FOLDER']):
+            if filename.startswith('custom_logo.'):
+                return jsonify({
+                    'has_logo': True,
+                    'logo_url': f'/static/uploads/{filename}'
+                })
+        
+        return jsonify({'has_logo': False})
+    
+    except Exception as e:
+        app.logger.error(f"Errore verifica logo: {e}")
+        return jsonify({'has_logo': False, 'error': str(e)})
 
 def update_system_status():
     """Aggiorna lo stato del sistema"""

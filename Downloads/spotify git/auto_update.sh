@@ -129,6 +129,12 @@ perform_update() {
         log_info "Aggiornamento Git completato"
     fi
     
+    # Incrementa versione automaticamente
+    if [[ -f "version.py" ]]; then
+        python3 version.py --increment 2>/dev/null || log_warning "Errore incremento versione"
+        log_info "Versione incrementata automaticamente"
+    fi
+    
     # Ripristina configurazione
     cp .env.auto-backup .env 2>/dev/null || log_warning "Backup .env non ripristinato"
     cp .spotify_cache.auto-backup .spotify_cache 2>/dev/null || log_warning "Backup cache non ripristinato"

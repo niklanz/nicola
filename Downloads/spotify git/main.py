@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 from spotify_manager import SpotifyManager
 from gpio_manager import GPIOManager
 from web_interface import app, init_managers
+from version import get_version_info
 
 class SpotifyPiController:
     def __init__(self):
@@ -54,6 +55,12 @@ class SpotifyPiController:
         
         self.logger = logging.getLogger(__name__)
         self.logger.info("Sistema di logging inizializzato")
+        
+        # Mostra informazioni sulla versione
+        version_info = get_version_info()
+        self.logger.info(f"=== {version_info['app_name']} v{version_info['version']} ===")
+        self.logger.info(f"Build Date: {version_info['build_date']}")
+        self.logger.info("="*50)
         
     def load_environment(self):
         """Carica le variabili d'ambiente"""
