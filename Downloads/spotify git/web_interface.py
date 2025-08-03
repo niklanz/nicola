@@ -516,6 +516,91 @@ def set_spotify_config():
         logger.error(f"Errore nell'aggiornamento configurazione Spotify: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/spotify/auth_url', methods=['GET'])
+@login_required
+def get_spotify_auth_url():
+    """Ottiene l'URL di autorizzazione Spotify"""
+    try:
+        if not spotify_manager or not hasattr(spotify_manager, 'sp_oauth'):
+            return jsonify({'success': False, 'error': 'Spotify Manager non disponibile'}), 500
+        
+        auth_url = spotify_manager.sp_oauth.get_authorize_url()
+        return jsonify({
+            'success': True,
+            'auth_url': auth_url
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Errore generazione URL autorizzazione: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/spotify/auth_status', methods=['GET'])
+@login_required
+def get_spotify_auth_status():
+    """Verifica lo stato dell'autorizzazione Spotify"""
+    try:
+        if not spotify_manager:
+            return jsonify({
+                'success': True,
+                'is_authenticated': False,
+                'user_info': None
+            })
+        
+        is_authenticated = spotify_manager.is_connected()
+        user_info = None
+        
+        if is_authenticated and spotify_manager.sp:
+            try:
+                user_data = spotify_manager.sp.current_user()
+                user_info = {
+                    'display_name': user_data.get('display_name', 'Utente Spotify'),
+                    'id': user_data.get('id', ''),
+                    'email': user_data.get('email', '')
+                }
+            except Exception as e:
+                app.logger.warning(f"Errore recupero info utente: {e}")
+        
+        return jsonify({
+            'success': True,
+            'is_authenticated': is_authenticated,
+            'user_info': user_info
+        })
+        
+    except Exception as e:
+        app.logger.error(f"Errore verifica stato autorizzazione: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/spotify/reinitialize', methods=['POST'])
+@login_required
+def reinitialize_spotify():
+    """Reinizializza la connessione Spotify"""
+    try:
+        global spotify_manager
+        
+        if spotify_manager and hasattr(spotify_manager, 'reinitialize_connection'):
+            success = spotify_manager.reinitialize_connection()
+            if success:
+                # Aggiorna lo stato del sistema
+                system_status['spotify_connected'] = True
+                return jsonify({
+                    'success': True,
+                    'message': 'Connessione Spotify reinizializzata con successo'
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'Errore nella reinizializzazione'
+                }), 500
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Spotify Manager non disponibile'
+            }), 500
+            
+    except Exception as e:
+        app.logger.error(f"Errore reinizializzazione Spotify: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/logo/upload', methods=['POST'])
 @login_required
 def upload_logo():

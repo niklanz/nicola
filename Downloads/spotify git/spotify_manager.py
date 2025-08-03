@@ -319,3 +319,15 @@ class SpotifyManager:
         if self.demo_mode:
             return True
         return self.sp is not None
+    
+    def reinitialize_connection(self):
+        """Reinizializza la connessione Spotify dopo una nuova autorizzazione"""
+        try:
+            if not self.demo_mode:
+                self._setup_spotify()
+                logging.info("Connessione Spotify reinizializzata con successo")
+                return True
+            return False
+        except Exception as e:
+            logging.error(f"Errore nella reinizializzazione Spotify: {e}")
+            return False
