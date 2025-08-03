@@ -9,8 +9,8 @@ import json
 from datetime import datetime
 
 # Current version
-VERSION = "1.0.0"
-BUILD_DATE = "2024-01-15"
+VERSION = "1.1.0"
+BUILD_DATE = "2025-08-03"
 
 def get_version():
     """Get current version string"""
@@ -20,11 +20,20 @@ def get_build_date():
     """Get build date"""
     return BUILD_DATE
 
+def get_build_date_formatted():
+    """Get build date in DD/MM/YYYY format"""
+    try:
+        # Convert from YYYY-MM-DD to DD/MM/YYYY
+        date_obj = datetime.strptime(BUILD_DATE, "%Y-%m-%d")
+        return date_obj.strftime("%d/%m/%Y")
+    except:
+        return BUILD_DATE
+
 def get_version_info():
     """Get complete version information"""
     return {
         "version": VERSION,
-        "build_date": BUILD_DATE,
+        "build_date": get_build_date_formatted(),
         "app_name": "Music Hub Pi Controller"
     }
 
