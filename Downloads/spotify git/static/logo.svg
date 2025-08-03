@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 200" width="800" height="200">
+  <!-- Stella principale con figura umana -->
+  <g transform="translate(20, 20)">
+    <!-- Stella di sfondo -->
+    <path d="M80 10 L95 50 L140 50 L105 75 L120 115 L80 90 L40 115 L55 75 L20 50 L65 50 Z" fill="#E31E24" stroke="none"/>
+    
+    <!-- Figura umana stilizzata -->
+    <circle cx="80" cy="45" r="8" fill="white"/>
+    <path d="M80 55 L75 75 L70 90 M80 55 L85 75 L90 90 M80 60 L65 70 M80 60 L95 70" stroke="white" stroke-width="3" fill="none" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Stelle decorative -->
+  <g transform="translate(140, 15)">
+    <path d="M15 5 L18 12 L25 12 L20 17 L22 24 L15 20 L8 24 L10 17 L5 12 L12 12 Z" fill="#E31E24"/>
+  </g>
+  
+  <g transform="translate(160, 35)">
+    <path d="M10 3 L12 8 L17 8 L13 11 L15 16 L10 13 L5 16 L7 11 L3 8 L8 8 Z" fill="#E31E24"/>
+  </g>
+  
+  <g transform="translate(175, 20)">
+    <path d="M8 2 L10 6 L14 6 L11 9 L12 13 L8 11 L4 13 L5 9 L2 6 L6 6 Z" fill="#E31E24"/>
+  </g>
+  
+  <!-- Testo CAM -->
+  <g transform="translate(220, 50)">
+    <text x="0" y="40" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#2C3E50">CAM</text>
+  </g>
+  
+  <!-- Testo SPORT -->
+  <g transform="translate(220, 90)">
+    <text x="0" y="40" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#E31E24">SPORT</text>
+  </g>
+  
+  <!-- Simbolo & -->
+  <g transform="translate(420, 90)">
+    <text x="0" y="40" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#E31E24">&</text>
+  </g>
+  
+  <!-- Testo SALUTE -->
+  <g transform="translate(460, 90)">
+    <text x="0" y="40" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#E31E24">SALUTE</text>
+  </g>
+  
+  <!-- Sottotitolo -->
+  <g transform="translate(380, 130)">
+    <text x="0" y="20" font-family="Arial, sans-serif" font-size="16" fill="#2C3E50">Centro Attività Motorie</text>
+  </g>
+</svg>

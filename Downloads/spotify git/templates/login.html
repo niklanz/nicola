@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Spotify Raspberry Pi Controller</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1db954 0%, #191414 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+        }
+        .spotify-logo {
+            color: #1db954;
+            font-size: 3rem;
+        }
+        .btn-spotify {
+            background-color: #1db954;
+            border-color: #1db954;
+            color: white;
+        }
+        .btn-spotify:hover {
+            background-color: #1ed760;
+            border-color: #1ed760;
+            color: white;
+        }
+        .form-control:focus {
+            border-color: #1db954;
+            box-shadow: 0 0 0 0.2rem rgba(29, 185, 84, 0.25);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-md-6 col-lg-4">
+                <div class="card login-card">
+                    <div class="card-body p-5">
+                        <div class="text-center mb-4">
+                            <img src="{{ url_for('static', filename='logo.svg') }}" alt="CAM Sport & Salute" style="max-width: 200px; height: auto; margin-bottom: 15px;">
+                            <h3 class="mt-3 mb-1">Raspberry Pi Controller</h3>
+                            <p class="text-muted">Inserisci la password per accedere</p>
+                        </div>
+                        
+                        {% with messages = get_flashed_messages(with_categories=true) %}
+                            {% if messages %}
+                                {% for category, message in messages %}
+                                    <div class="alert alert-{% if category == 'error' %}danger{% elif category == 'success' %}success{% else %}info{% endif %} alert-dismissible fade show" role="alert">
+                                        {{ message }}
+                                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endwith %}
+                        
+                        <form method="POST">
+                            <div class="mb-4">
+                                <label for="password" class="form-label">
+                                    <i class="fas fa-lock me-2"></i>Password
+                                </label>
+                                <input type="password" class="form-control form-control-lg" 
+                                       id="password" name="password" required 
+                                       placeholder="Inserisci la password">
+                            </div>
+                            
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-spotify btn-lg">
+                                    <i class="fas fa-sign-in-alt me-2"></i>Accedi
+                                </button>
+                            </div>
+                        </form>
+                        
+                        <div class="text-center mt-4">
+                            <small class="text-muted">
+                                <i class="fas fa-shield-alt me-1"></i>
+                                Accesso protetto
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

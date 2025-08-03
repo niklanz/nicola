@@ -1,0 +1,43 @@
+# File di configurazione sensibili
+.env
+.spotify_cache
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Ambienti virtuali
+venv/
+spotify_env/
+spotify-env/
+env/
+ENV/
+
+# Log files
+*.log
+spotify_pi.log
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Backup files
+*.bak
+*.backup
+*.tmp

@@ -1,0 +1,1123 @@
+{% extends "base.html" %}
+
+{% block styles %}
+    <style>
+        /* Volume Slider Styling */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            cursor: pointer;
+        }
+        
+        input[type="range"]::-webkit-slider-track {
+            background: #404040;
+            height: 6px;
+            border-radius: 3px;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            background: #1db954;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #000;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        
+        input[type="range"]::-moz-range-track {
+            background: #404040;
+            height: 6px;
+            border-radius: 3px;
+            border: none;
+        }
+        
+        input[type="range"]::-moz-range-thumb {
+            background: #1db954;
+            height: 20px;
+            width: 20px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #000;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        }
+        
+        /* Button hover effects */
+        button:hover {
+            transform: translateY(-1px);
+        }
+        
+        /* Smooth transitions */
+        * {
+            transition: all 0.2s ease;
+        }
+        
+        /* Focus styles */
+        input:focus, select:focus, button:focus {
+            outline: 2px solid #1db954;
+            outline-offset: 2px;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+<div class="container" style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+    
+    
+    <!-- Current Track Display -->
+     <div class="text-center" style="margin-bottom: 60px; padding: 30px 20px; background: rgba(255,255,255,0.05); border-radius: 20px; backdrop-filter: blur(10px);">
+         <h1 style="font-size: 36px; font-weight: 400; margin-bottom: 15px; color: #ffffff; line-height: 1.2; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+             {{ status.current_track.name or 'Nessun brano in riproduzione' }}
+         </h1>
+         <p style="font-size: 22px; color: #e0e0e0; margin-bottom: 25px; font-weight: 300;">
+             {{ status.current_track.artist or 'Seleziona un brano per iniziare' }}
+         </p>
+         <div style="background: #333333; height: 6px; border-radius: 3px; margin: 0 auto; width: 100%; box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);">
+             <div id="progressBar" style="background: linear-gradient(90deg, #1db954, #1ed760); height: 6px; border-radius: 3px; width: 0%; transition: width 0.3s ease; box-shadow: 0 1px 3px rgba(29,185,84,0.4);"></div>
+         </div>
+     </div>
+
+    <!-- Playback Controls -->
+     <div class="text-center" style="margin-bottom: 60px;">
+         <div style="display: flex; justify-content: center; align-items: center; gap: 40px;">
+             <button onclick="previousTrack()" style="background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); color: #ffffff; font-size: 42px; cursor: pointer; padding: 25px; border-radius: 50%; width: 85px; height: 85px; display: flex; align-items: center; justify-content: center; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.2);" 
+                     onmouseover="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='scale(1.05)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.transform='scale(1)'">
+                 <i class="fas fa-step-backward"></i>
+             </button>
+             
+             <button onclick="togglePlayPause()" style="background: linear-gradient(135deg, #1db954, #1ed760); border: none; color: #000000; font-size: 50px; cursor: pointer; padding: 30px; border-radius: 50%; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; transition: all 0.3s; box-shadow: 0 6px 20px rgba(29,185,84,0.4);"
+                      onmouseover="this.style.transform='scale(1.05)'; this.style.boxShadow='0 8px 25px rgba(29,185,84,0.6)'" onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 6px 20px rgba(29,185,84,0.4)'">
+                  <i class="fas fa-play" id="playPauseIcon" style="margin-left: 4px;"></i>
+              </button>
+             
+             <button onclick="nextTrack()" style="background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.2); color: #ffffff; font-size: 42px; cursor: pointer; padding: 25px; border-radius: 50%; width: 85px; height: 85px; display: flex; align-items: center; justify-content: center; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.2);"
+                     onmouseover="this.style.background='rgba(255,255,255,0.2)'; this.style.transform='scale(1.05)'" onmouseout="this.style.background='rgba(255,255,255,0.1)'; this.style.transform='scale(1)'">
+                 <i class="fas fa-step-forward"></i>
+             </button>
+         </div>
+     </div>
+
+    <!-- Volume Control -->
+    <div style="margin-bottom: 50px;">
+        <div style="display: flex; align-items: center; gap: 15px; justify-content: center;">
+            <i class="fas fa-volume-down" style="color: #b3b3b3; font-size: 18px;"></i>
+            <input type="range" id="volumeSlider" min="0" max="100" value="{{ status.volume }}" 
+                    onchange="setVolume(this.value)" oninput="updateVolumeDisplay(this.value)"
+                    style="width: 250px; height: 6px; background: #404040; border-radius: 3px; outline: none; -webkit-appearance: none;">
+             <span id="volumeDisplay" style="color: #ffffff; font-size: 16px; font-weight: 500; min-width: 60px;">{{ status.volume }}%</span>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="text-center" style="margin-bottom: 50px;">
+        <div style="display: flex; justify-content: center; gap: 25px; flex-wrap: wrap;">
+            <button onclick="showDevices()" style="background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); color: #ffffff; padding: 18px 28px; border-radius: 30px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
+                    onmouseover="this.style.background='rgba(255,255,255,0.15)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0,0,0,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.1)'">
+                <i class="fas fa-devices" style="margin-right: 10px; font-size: 18px;"></i>Dispositivi
+            </button>
+            <button onclick="showPlaylists()" style="background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); color: #ffffff; padding: 18px 28px; border-radius: 30px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
+                    onmouseover="this.style.background='rgba(255,255,255,0.15)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0,0,0,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.1)'">
+                <i class="fas fa-list" style="margin-right: 10px; font-size: 18px;"></i>Playlist
+            </button>
+            <button onclick="toggleSearch()" style="background: rgba(255,255,255,0.08); border: 2px solid rgba(255,255,255,0.15); color: #ffffff; padding: 18px 28px; border-radius: 30px; cursor: pointer; font-size: 16px; font-weight: 500; transition: all 0.3s; box-shadow: 0 4px 15px rgba(0,0,0,0.1);"
+                    onmouseover="this.style.background='rgba(255,255,255,0.15)'; this.style.transform='translateY(-2px)'; this.style.boxShadow='0 6px 20px rgba(0,0,0,0.2)'" onmouseout="this.style.background='rgba(255,255,255,0.08)'; this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 15px rgba(0,0,0,0.1)'">
+                <i class="fas fa-search" style="margin-right: 10px; font-size: 18px;"></i>Cerca
+            </button>
+        </div>
+    </div>
+
+    <!-- Search Section -->
+    <div id="searchSection" style="display: none; margin-bottom: 30px;">
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="searchInput" placeholder="Cerca musica..." 
+                   style="flex: 1; padding: 15px; border: 1px solid #555; background: #333; color: #ffffff; border-radius: 25px; font-size: 16px; outline: none;"
+                   onfocus="this.style.borderColor='#1db954'" onblur="this.style.borderColor='#555'">
+            <button onclick="searchMusic()" style="background: #1db954; border: none; color: #000000; padding: 15px 20px; border-radius: 25px; cursor: pointer; font-size: 16px;"
+                     onmouseover="this.style.background='#1ed760'" onmouseout="this.style.background='#1db954'">
+                 <i class="fas fa-search"></i>
+             </button>
+        </div>
+        <div id="searchResults" class="mt-2"></div>
+    </div>
+
+    <!-- Status Bar -->
+     <div class="text-center" style="margin-bottom: 20px;">
+         <div style="display: flex; justify-content: center; gap: 15px; flex-wrap: wrap;">
+              <span id="spotifyStatus" style="padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500;">
+                  Spotify Connesso
+              </span>
+              <span id="gpioStatus" style="padding: 8px 16px; border-radius: 20px; font-size: 14px; font-weight: 500;">
+                  GPIO 18
+              </span>
+          </div>
+     </div>
+
+    <!-- Settings Link -->
+    <div class="text-center">
+        <button onclick="toggleAdvanced()" style="background: none; border: 1px solid #555; color: #b3b3b3; padding: 10px 20px; border-radius: 20px; cursor: pointer; font-size: 14px; transition: all 0.2s;"
+                onmouseover="this.style.borderColor='#1db954'; this.style.color='#ffffff'" onmouseout="this.style.borderColor='#555'; this.style.color='#b3b3b3'">
+            <i class="fas fa-cog" style="margin-right: 8px;"></i>Impostazioni
+        </button>
+    </div>
+
+    <!-- Advanced Panel -->
+    <div id="advancedPanel" style="display: none; margin-top: 30px; background: #222; border-radius: 15px; padding: 25px;">
+        <h3 style="color: #ffffff; font-size: 20px; margin-bottom: 20px; text-align: center;">Impostazioni Avanzate</h3>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px;">
+            <button onclick="toggleGpioMonitoring()" style="background: #ff9500; border: none; color: #000000; padding: 15px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                <i class="fas fa-power-off" style="margin-right: 8px;"></i>Monitor GPIO
+            </button>
+            <button onclick="testGpioTrigger()" style="background: #007aff; border: none; color: #ffffff; padding: 15px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                <i class="fas fa-play" style="margin-right: 8px;"></i>Test GPIO
+            </button>
+            <button onclick="showTimePlaylistsConfig()" style="background: #34c759; border: none; color: #000000; padding: 15px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                <i class="fas fa-clock" style="margin-right: 8px;"></i>Timer Playlist
+            </button>
+            <button onclick="showSpotifyConfig()" style="background: #ff3b30; border: none; color: #ffffff; padding: 15px; border-radius: 10px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                <i class="fas fa-cog" style="margin-right: 8px;"></i>Config Spotify
+            </button>
+        </div>
+        
+        <div style="margin-bottom: 15px;">
+            <label style="color: #b3b3b3; font-size: 14px; margin-bottom: 8px; display: block;">Pin GPIO:</label>
+            <div style="display: flex; gap: 10px;">
+                <select id="pinSelect" style="flex: 1; padding: 10px; border: 1px solid #555; background: #333; color: #ffffff; border-radius: 8px;">
+                    <option value="18">Pin 18</option>
+                    <option value="19">Pin 19</option>
+                    <option value="20">Pin 20</option>
+                    <option value="21">Pin 21</option>
+                    <option value="22">Pin 22</option>
+                    <option value="23">Pin 23</option>
+                    <option value="24">Pin 24</option>
+                    <option value="25">Pin 25</option>
+                </select>
+                <button onclick="changeGpioPin()" style="background: #ff9500; border: none; color: #000000; padding: 10px 15px; border-radius: 8px; cursor: pointer;">
+                    <i class="fas fa-edit"></i>
+                </button>
+            </div>
+        </div>
+        
+        <div style="text-align: center; padding: 15px; background: #333; border-radius: 10px;">
+            <small style="color: #b3b3b3;">Fascia Oraria Attuale: </small>
+            <span id="currentTimePeriod" style="background: #1db954; color: #000000; padding: 4px 12px; border-radius: 15px; font-size: 12px; font-weight: 500;">-</span>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per Dispositivi -->
+<div class="modal fade" id="devicesModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Dispositivi Spotify</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="devicesContent">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per Playlist -->
+<div class="modal fade" id="playlistsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Le Tue Playlist</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="playlistsContent">
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Caricamento...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per Configurazione Playlist Temporali -->
+<div class="modal fade" id="timePlaylistsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Configurazione Playlist Temporali</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6 mb-4">
+                        <div class="border p-3 rounded">
+                            <label class="form-label fw-bold">Periodo 1</label>
+                            <div class="row mb-2">
+                                <div class="col-6">
+                                    <label class="form-label small">Ora inizio:</label>
+                                    <input type="time" class="form-control form-control-sm" id="period1Start" value="06:00">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small">Ora fine:</label>
+                                    <input type="time" class="form-control form-control-sm" id="period1End" value="12:00">
+                                </div>
+                            </div>
+                            <label class="form-label small">Playlist:</label>
+                            <select class="form-select" id="period1Playlist">
+                                <option value="">Seleziona una playlist...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="border p-3 rounded">
+                            <label class="form-label fw-bold">Periodo 2</label>
+                            <div class="row mb-2">
+                                <div class="col-6">
+                                    <label class="form-label small">Ora inizio:</label>
+                                    <input type="time" class="form-control form-control-sm" id="period2Start" value="12:00">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small">Ora fine:</label>
+                                    <input type="time" class="form-control form-control-sm" id="period2End" value="18:00">
+                                </div>
+                            </div>
+                            <label class="form-label small">Playlist:</label>
+                            <select class="form-select" id="period2Playlist">
+                                <option value="">Seleziona una playlist...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="border p-3 rounded">
+                            <label class="form-label fw-bold">Periodo 3</label>
+                            <div class="row mb-2">
+                                <div class="col-6">
+                                    <label class="form-label small">Ora inizio:</label>
+                                    <input type="time" class="form-control form-control-sm" id="period3Start" value="18:00">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small">Ora fine:</label>
+                                    <input type="time" class="form-control form-control-sm" id="period3End" value="22:00">
+                                </div>
+                            </div>
+                            <label class="form-label small">Playlist:</label>
+                            <select class="form-select" id="period3Playlist">
+                                <option value="">Seleziona una playlist...</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-4">
+                        <div class="border p-3 rounded">
+                            <label class="form-label fw-bold">Periodo 4</label>
+                            <div class="row mb-2">
+                                <div class="col-6">
+                                    <label class="form-label small">Ora inizio:</label>
+                                    <input type="time" class="form-control form-control-sm" id="period4Start" value="22:00">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small">Ora fine:</label>
+                                    <input type="time" class="form-control form-control-sm" id="period4End" value="06:00">
+                                </div>
+                            </div>
+                            <label class="form-label small">Playlist:</label>
+                            <select class="form-select" id="period4Playlist">
+                                <option value="">Seleziona una playlist...</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert alert-info">
+                    <small><i class="fas fa-info-circle"></i> Seleziona una playlist dal tuo account Spotify per ogni periodo temporale. Le playlist verranno caricate automaticamente quando apri questa finestra.</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-primary" onclick="saveTimePlaylistsConfig()">Salva Configurazione</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal per Configurazione Spotify -->
+<div class="modal fade" id="spotifyConfigModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fab fa-spotify text-success"></i> Configurazione Spotify</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle"></i> <strong>Accesso Amministratore</strong><br>
+                    Inserisci la password per accedere alle impostazioni Spotify.
+                </div>
+                
+                <div id="passwordSection">
+                    <div class="mb-3">
+                        <label for="adminPassword" class="form-label">Password Amministratore:</label>
+                        <input type="password" class="form-control" id="adminPassword" placeholder="Inserisci la password">
+                    </div>
+                    <button class="btn btn-primary w-100" onclick="verifyPassword()">Accedi</button>
+                </div>
+                
+                <div id="configSection" style="display: none;">
+                    <div class="alert alert-success">
+                        <i class="fas fa-check-circle"></i> Accesso autorizzato. Puoi modificare le impostazioni Spotify.
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="spotifyClientId" class="form-label">Client ID:</label>
+                        <input type="text" class="form-control" id="spotifyClientId" placeholder="Il tuo Spotify Client ID">
+                        <small class="form-text text-muted">Ottieni il Client ID dalla Spotify Developer Dashboard</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="spotifyClientSecret" class="form-label">Client Secret:</label>
+                        <input type="password" class="form-control" id="spotifyClientSecret" placeholder="Il tuo Spotify Client Secret">
+                        <small class="form-text text-muted">Mantieni questo valore segreto</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="spotifyRedirectUri" class="form-label">Redirect URI:</label>
+                        <input type="url" class="form-control" id="spotifyRedirectUri" placeholder="http://localhost:5004/callback">
+                        <small class="form-text text-muted">Deve corrispondere all'URI configurato nella tua app Spotify</small>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i> <strong>Come ottenere le credenziali:</strong><br>
+                        1. Vai su <a href="https://developer.spotify.com/dashboard" target="_blank">Spotify Developer Dashboard</a><br>
+                        2. Crea una nuova app o seleziona quella esistente<br>
+                        3. Copia Client ID e Client Secret<br>
+                        4. Aggiungi il Redirect URI nelle impostazioni dell'app
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success" onclick="saveSpotifyConfig()">Salva Configurazione</button>
+                        <button class="btn btn-outline-primary" onclick="loadSpotifyConfig()">Carica Configurazione Attuale</button>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Chiudi</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Controlli Spotify
+    function togglePlayback() {
+        makeApiCall('toggle', 'POST')
+            .done(function(data) {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    // Update play button icon
+                    const playBtn = document.getElementById('playPauseIcon');
+                    if (playBtn) {
+                        playBtn.className = data.is_playing ? 'fas fa-pause fa-xl' : 'fas fa-play fa-xl';
+                    }
+                } else {
+                    showAlert(data.message || 'Errore nell\'operazione', 'danger');
+                }
+            })
+            .fail(function() {
+                showAlert('Errore di connessione', 'danger');
+            });
+    }
+    
+    function previousTrack() {
+        makeApiCall('previous', 'POST')
+            .done(function(data) {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                } else {
+                    showAlert(data.message || 'Errore nell\'operazione', 'danger');
+                }
+            });
+    }
+    
+    function nextTrack() {
+        makeApiCall('next', 'POST')
+            .done(function(data) {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                } else {
+                    showAlert(data.message || 'Errore nell\'operazione', 'danger');
+                }
+            });
+    }
+    
+    // Controllo Volume
+    $('#volumeSlider').on('change', function() {
+        const volume = $(this).val();
+        makeApiCall('volume', 'POST', {volume: parseInt(volume)})
+            .done(function(data) {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                } else {
+                    showAlert(data.message || 'Errore nell\'impostazione volume', 'danger');
+                }
+            });
+    });
+    
+    // Ricerca
+    $('#searchInput').on('keypress', function(e) {
+        if (e.which === 13) {
+            searchMusic();
+        }
+    });
+    
+    function searchMusic() {
+        const query = $('#searchInput').val().trim();
+        if (!query) return;
+        
+        makeApiCall(`search?q=${encodeURIComponent(query)}`)
+            .done(function(data) {
+                displaySearchResults(data.tracks);
+            })
+            .fail(function() {
+                showAlert('Errore nella ricerca', 'danger');
+            });
+    }
+    
+    function displaySearchResults(tracks) {
+        const resultsDiv = $('#searchResults');
+        if (!tracks || tracks.length === 0) {
+            resultsDiv.html('<p class="text-muted">Nessun risultato trovato</p>');
+            return;
+        }
+        
+        let html = '<div class="list-group">';
+        tracks.slice(0, 10).forEach(track => {
+            html += `
+                <div class="list-group-item list-group-item-action">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">${track.name}</h6>
+                            <small>${track.artists.map(a => a.name).join(', ')}</small>
+                        </div>
+                        <button class="btn btn-sm btn-spotify" onclick="playTrack('${track.uri}')">
+                            <i class="fas fa-play"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        resultsDiv.html(html);
+    }
+    
+    function playTrack(uri) {
+        makeApiCall('play', 'POST', {playlist_uri: uri})
+            .done(function(data) {
+                if (data.success) {
+                    showAlert('Riproduzione avviata', 'success');
+                } else {
+                    showAlert(data.message || 'Errore nell\'avvio', 'danger');
+                }
+            });
+    }
+    
+    // Dispositivi
+    function showDevices() {
+        $('#devicesModal').modal('show');
+        makeApiCall('devices')
+            .done(function(data) {
+                displayDevices(data.devices);
+            })
+            .fail(function() {
+                $('#devicesContent').html('<p class="text-danger">Errore nel caricamento dispositivi</p>');
+            });
+    }
+    
+    function displayDevices(devices) {
+        const content = $('#devicesContent');
+        if (!devices || devices.length === 0) {
+            content.html('<p class="text-muted">Nessun dispositivo trovato</p>');
+            return;
+        }
+        
+        let html = '<div class="list-group">';
+        devices.forEach(device => {
+            html += `
+                <div class="list-group-item ${device.is_active ? 'active' : ''}">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">${device.name}</h6>
+                            <small>${device.type} - Volume: ${device.volume_percent}%</small>
+                        </div>
+                        ${!device.is_active ? `<button class="btn btn-sm btn-primary" onclick="setDevice('${device.id}')">Seleziona</button>` : '<span class="badge bg-success">Attivo</span>'}
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        content.html(html);
+    }
+    
+    function setDevice(deviceId) {
+        makeApiCall('set_device', 'POST', {device_id: deviceId})
+            .done(function(data) {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    $('#devicesModal').modal('hide');
+                } else {
+                    showAlert(data.message || 'Errore nell\'impostazione dispositivo', 'danger');
+                }
+            });
+    }
+    
+    // Playlist
+    function showPlaylists() {
+        $('#playlistsModal').modal('show');
+        makeApiCall('playlists')
+            .done(function(data) {
+                displayPlaylists(data.playlists);
+            })
+            .fail(function() {
+                $('#playlistsContent').html('<p class="text-danger">Errore nel caricamento playlist</p>');
+            });
+    }
+    
+    function displayPlaylists(playlists) {
+        const content = $('#playlistsContent');
+        if (!playlists || playlists.length === 0) {
+            content.html('<p class="text-muted">Nessuna playlist trovata</p>');
+            return;
+        }
+        
+        let html = '<div class="row">';
+        playlists.forEach(playlist => {
+            html += `
+                <div class="col-md-6 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-title">${playlist.name}</h6>
+                            <p class="card-text"><small class="text-muted">${playlist.tracks.total} brani</small></p>
+                            <button class="btn btn-sm btn-spotify" onclick="playPlaylist('${playlist.uri}')">
+                                <i class="fas fa-play"></i> Riproduci
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        html += '</div>';
+        content.html(html);
+    }
+    
+    function playPlaylist(uri) {
+        makeApiCall('play', 'POST', {playlist_uri: uri})
+            .done(function(data) {
+                if (data.success) {
+                    showAlert('Playlist avviata', 'success');
+                    $('#playlistsModal').modal('hide');
+                } else {
+                    showAlert(data.message || 'Errore nell\'avvio playlist', 'danger');
+                }
+            });
+    }
+    
+    // GPIO
+    function changeGpioPin() {
+        const pin = $('#pinSelect').val();
+        makeApiCall('gpio/set_pin', 'POST', {pin: parseInt(pin)})
+            .done(function(data) {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    $('#gpioPin').text(pin);
+                } else {
+                    showAlert(data.message || 'Errore nel cambio pin', 'danger');
+                }
+            });
+    }
+    
+    function toggleGpioMonitoring() {
+        makeApiCall('gpio/toggle_monitoring', 'POST')
+            .done(function(data) {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                    refreshGpioStatus();
+                } else {
+                    showAlert(data.message || 'Errore nel toggle monitoraggio', 'danger');
+                }
+            });
+    }
+    
+    function refreshGpioStatus() {
+        makeApiCall('gpio/status')
+            .done(function(data) {
+                $('#gpioPin').text(data.pin);
+                $('#gpioState').text(data.state ? 'HIGH' : 'LOW');
+                $('#gpioMonitoring').text(data.monitoring ? 'Attivo' : 'Inattivo');
+            });
+    }
+    
+    function refreshStatus() {
+        location.reload();
+    }
+    
+    // Playlist Temporali
+    function showTimePlaylistsConfig() {
+        $('#timePlaylistsModal').modal('show');
+        loadPlaylistsForTimeConfig();
+        loadTimePlaylistsConfig();
+    }
+    
+    function loadPlaylistsForTimeConfig() {
+        // Carica le playlist dell'utente per popolare i dropdown
+        makeApiCall('playlists')
+            .done(function(data) {
+                const playlists = data.playlists || [];
+                
+                // Popola tutti i dropdown con le playlist
+                for (let i = 1; i <= 4; i++) {
+                    const select = $(`#period${i}Playlist`);
+                    select.empty();
+                    select.append('<option value="">Seleziona una playlist...</option>');
+                    
+                    playlists.forEach(playlist => {
+                        select.append(`<option value="${playlist.uri}">${playlist.name} (${playlist.tracks.total} brani)</option>`);
+                    });
+                }
+            })
+            .fail(function() {
+                showAlert('Errore nel caricamento playlist', 'warning');
+            });
+    }
+    
+    function loadTimePlaylistsConfig() {
+        makeApiCall('time_playlists')
+            .done(function(data) {
+                // Carica i periodi personalizzati o usa i valori di default
+                const periods = data.periods || [
+                    {start: '06:00', end: '12:00', playlist: ''},
+                    {start: '12:00', end: '18:00', playlist: ''},
+                    {start: '18:00', end: '22:00', playlist: ''},
+                    {start: '22:00', end: '06:00', playlist: ''}
+                ];
+                
+                for (let i = 0; i < 4; i++) {
+                    const period = periods[i] || {start: '', end: '', playlist: ''};
+                    $(`#period${i+1}Start`).val(period.start);
+                    $(`#period${i+1}End`).val(period.end);
+                    $(`#period${i+1}Playlist`).val(period.playlist);
+                }
+            })
+            .fail(function() {
+                showAlert('Errore nel caricamento configurazione', 'warning');
+            });
+    }
+    
+    function saveTimePlaylistsConfig() {
+        const periods = [];
+        
+        for (let i = 1; i <= 4; i++) {
+            const start = $(`#period${i}Start`).val();
+            const end = $(`#period${i}End`).val();
+            const playlist = $(`#period${i}Playlist`).val(); // Rimuovo .trim() perché ora è un select
+            
+            if (start && end) {
+                periods.push({
+                    start: start,
+                    end: end,
+                    playlist: playlist || '' // Gestisce il caso di nessuna playlist selezionata
+                });
+            }
+        }
+        
+        const config = { periods: periods };
+        
+        makeApiCall('time_playlists', 'POST', config)
+            .done(function(data) {
+                if (data.success) {
+                    showAlert('Configurazione salvata con successo', 'success');
+                    $('#timePlaylistsModal').modal('hide');
+                    loadTimePeriods();
+                } else {
+                    showAlert(data.message || 'Errore nel salvataggio', 'danger');
+                }
+            })
+            .fail(function() {
+                showAlert('Errore di connessione', 'danger');
+            });
+    }
+    
+    function testGpioTrigger() {
+        makeApiCall('test_gpio_trigger', 'POST')
+            .done(function(data) {
+                if (data.success) {
+                    showAlert(data.message, 'success');
+                } else {
+                    showAlert(data.message || 'Errore nel test', 'danger');
+                }
+            })
+            .fail(function() {
+                showAlert('Errore di connessione', 'danger');
+            });
+    }
+    
+    function loadTimePeriods() {
+        makeApiCall('time_playlists')
+            .done(function(data) {
+                displayTimePeriods(data);
+                updateCurrentTimePeriod();
+            });
+    }
+    
+    function displayTimePeriods(config) {
+        const container = $('#timePeriods');
+        let html = '';
+        
+        const periods = config.periods || [];
+        
+        if (periods.length === 0) {
+            html = '<p class="text-muted small">Nessun periodo configurato</p>';
+        } else {
+            periods.forEach((period, index) => {
+                const hasPlaylist = period.playlist && period.playlist.trim();
+                const icon = getTimeIcon(period.start);
+                html += `
+                    <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                        <div>
+                            <i class="fas fa-${icon}"></i>
+                            <strong>Periodo ${index + 1}</strong>
+                            <small class="text-muted">(${period.start}-${period.end})</small>
+                        </div>
+                        <span class="badge ${hasPlaylist ? 'bg-success' : 'bg-secondary'}">
+                            ${hasPlaylist ? 'Configurata' : 'Non configurata'}
+                        </span>
+                    </div>
+                `;
+            });
+        }
+        
+        container.html(html);
+    }
+    
+    function getTimeIcon(timeStr) {
+        const hour = parseInt(timeStr.split(':')[0]);
+        if (hour >= 6 && hour < 18) {
+            return 'sun';
+        } else {
+            return 'moon';
+        }
+    }
+    
+    function updateCurrentTimePeriod() {
+        makeApiCall('time_playlists')
+            .done(function(data) {
+                const now = new Date();
+                const currentTime = now.getHours().toString().padStart(2, '0') + ':' + now.getMinutes().toString().padStart(2, '0');
+                const periods = data.periods || [];
+                
+                let currentPeriod = 'Nessun periodo attivo';
+                
+                periods.forEach((period, index) => {
+                    if (isTimeInRange(currentTime, period.start, period.end)) {
+                        currentPeriod = `Periodo ${index + 1} (${period.start}-${period.end})`;
+                    }
+                });
+                
+                $('#currentTimePeriod').text(currentPeriod);
+            });
+    }
+    
+    function isTimeInRange(currentTime, startTime, endTime) {
+        const current = timeToMinutes(currentTime);
+        const start = timeToMinutes(startTime);
+        const end = timeToMinutes(endTime);
+        
+        if (start <= end) {
+            // Stesso giorno
+            return current >= start && current < end;
+        } else {
+            // Attraversa la mezzanotte
+            return current >= start || current < end;
+        }
+    }
+    
+    function timeToMinutes(timeStr) {
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        return hours * 60 + minutes;
+    }
+    
+    // Configurazione Spotify
+    function showSpotifyConfig() {
+        $('#spotifyConfigModal').modal('show');
+        // Reset del modal
+        $('#passwordSection').show();
+        $('#configSection').hide();
+        $('#adminPassword').val('');
+    }
+    
+    function verifyPassword() {
+        const password = $('#adminPassword').val();
+        
+        // Verifica la password tramite API
+        makeApiCall('admin/verify', 'POST', { password: password })
+            .done(function(data) {
+                if (data.success) {
+                    $('#passwordSection').hide();
+                    $('#configSection').show();
+                    loadSpotifyConfig();
+                } else {
+                    showAlert('Password non corretta', 'danger');
+                    $('#adminPassword').val('').focus();
+                }
+            })
+            .fail(function() {
+                showAlert('Errore di connessione', 'danger');
+            });
+    }
+    
+    function loadSpotifyConfig() {
+        makeApiCall('admin/spotify_config')
+            .done(function(data) {
+                $('#spotifyClientId').val(data.client_id || '');
+                // Non caricare il client secret mascherato, lascia il campo vuoto per sicurezza
+                $('#spotifyClientSecret').val('');
+                $('#spotifyClientSecret').attr('placeholder', data.client_secret ? 'Client Secret configurato (lascia vuoto per non modificare)' : 'Il tuo Spotify Client Secret');
+                $('#spotifyRedirectUri').val(data.redirect_uri || 'http://localhost:5004/callback');
+            })
+            .fail(function() {
+                showAlert('Errore nel caricamento configurazione', 'warning');
+            });
+    }
+    
+    function saveSpotifyConfig() {
+        const clientId = $('#spotifyClientId').val().trim();
+        const clientSecret = $('#spotifyClientSecret').val().trim();
+        const redirectUri = $('#spotifyRedirectUri').val().trim();
+        
+        if (!clientId || !redirectUri) {
+            showAlert('Client ID e Redirect URI sono obbligatori', 'warning');
+            return;
+        }
+        
+        const config = {
+            client_id: clientId,
+            redirect_uri: redirectUri
+        };
+        
+        // Includi il client secret solo se è stato inserito
+        if (clientSecret) {
+            config.client_secret = clientSecret;
+        }
+        
+        makeApiCall('admin/spotify_config', 'POST', config)
+            .done(function(data) {
+                if (data.success) {
+                    showAlert('Configurazione Spotify salvata con successo. Riavvia il servizio per applicare le modifiche.', 'success');
+                    $('#spotifyConfigModal').modal('hide');
+                } else {
+                    showAlert(data.message || 'Errore nel salvataggio', 'danger');
+                }
+            })
+            .fail(function() {
+                showAlert('Errore di connessione', 'danger');
+            });
+    }
+    
+    // Funzione per gestire il toggle dei controlli avanzati
+    function toggleAdvanced() {
+        const panel = $('#advancedPanel');
+        panel.toggle();
+    }
+    
+    // Funzione per gestire il toggle della ricerca
+    function toggleSearch() {
+        const searchSection = $('#searchSection');
+        searchSection.toggle();
+        if (searchSection.is(':visible')) {
+            $('#searchInput').focus();
+        }
+    }
+    
+    // Update volume display
+        function updateVolumeDisplay(value) {
+            document.getElementById('volumeDisplay').textContent = value + '%';
+        }
+        
+        // Set volume function
+        function setVolume(value) {
+            makeApiCall('volume', 'POST', {volume: parseInt(value)})
+                .done(function(data) {
+                    if (data.success) {
+                        showAlert(data.message, 'success');
+                    } else {
+                        showAlert(data.message || 'Errore nell\'impostazione volume', 'danger');
+                    }
+                });
+        }
+        
+        // Toggle play/pause function
+        function togglePlayPause() {
+            makeApiCall('toggle', 'POST')
+                .done(function(data) {
+                    if (data.success) {
+                        showAlert(data.message, 'success');
+                        // Update play button icon
+                        const playBtn = document.getElementById('playPauseIcon');
+                        if (playBtn) {
+                            playBtn.className = data.is_playing ? 'fas fa-pause fa-xl' : 'fas fa-play fa-xl';
+                        }
+                    } else {
+                        showAlert(data.message || 'Errore nell\'operazione', 'danger');
+                    }
+                })
+                .fail(function() {
+                    showAlert('Errore di connessione', 'danger');
+                });
+        }
+        
+        // Update status badges
+        function updateStatusBadges() {
+            const spotifyStatus = document.getElementById('spotifyStatus');
+            const gpioStatus = document.getElementById('gpioStatus');
+            
+            if (spotifyStatus) {
+                const isConnected = window.spotifyConnected || false;
+                spotifyStatus.style.background = isConnected ? '#1db954' : '#e22134';
+                spotifyStatus.style.color = isConnected ? '#000000' : '#ffffff';
+                spotifyStatus.textContent = isConnected ? 'Spotify Connesso' : 'Spotify Disconnesso';
+            }
+            
+            if (gpioStatus) {
+                const gpioActive = window.gpioStatus || false;
+                const gpioPin = window.gpioPin || 'N/A';
+                const statusText = gpioActive ? 'ATTIVO' : 'INATTIVO';
+                gpioStatus.style.background = gpioActive ? '#1db954' : '#666';
+                gpioStatus.style.color = gpioActive ? '#000000' : '#ffffff';
+                gpioStatus.innerHTML = `<i class="fas fa-microchip" style="margin-right: 6px;"></i>GPIO ${gpioPin} - ${statusText}`;
+            }
+        }
+        
+        // Real-time status update function
+        function updateRealTimeStatus() {
+            makeApiCall('status')
+                .done(function(data) {
+                    if (data) {
+                        // Update global variables
+                        window.spotifyConnected = data.spotify_connected || false;
+                        window.gpioStatus = data.gpio_status || false;
+                        window.gpioPin = data.gpio_pin || 'N/A';
+                        
+                        // Update badges
+                        updateStatusBadges();
+                        
+                        // Update pin selector if different
+                        const pinSelect = document.getElementById('pinSelect');
+                        if (pinSelect && data.gpio_pin) {
+                            pinSelect.value = data.gpio_pin;
+                        }
+                        
+                        // Update play button if needed
+                        const playBtn = document.getElementById('playPauseIcon');
+                        if (playBtn && data.hasOwnProperty('is_playing')) {
+                            playBtn.className = data.is_playing ? 'fas fa-pause' : 'fas fa-play';
+                            playBtn.style.marginLeft = data.is_playing ? '0' : '4px';
+                        }
+                        
+                        // Update volume if needed
+                        const volumeSlider = document.getElementById('volumeSlider');
+                        const volumeDisplay = document.getElementById('volumeDisplay');
+                        if (volumeSlider && data.hasOwnProperty('volume')) {
+                            volumeSlider.value = data.volume;
+                            if (volumeDisplay) {
+                                volumeDisplay.textContent = data.volume + '%';
+                            }
+                        }
+                        
+                        // Update current track information
+        if (data.current_track) {
+            const trackTitle = document.querySelector('h1');
+            const trackArtist = document.querySelector('p');
+            const progressBar = document.getElementById('progressBar');
+            
+            if (trackTitle) {
+                trackTitle.textContent = data.current_track.name || 'Nessun brano in riproduzione';
+            }
+            
+            if (trackArtist) {
+                trackArtist.textContent = data.current_track.artist || 'Seleziona un brano per iniziare';
+            }
+            
+            // Update progress bar
+            if (progressBar && data.current_track.duration_ms && data.current_track.progress_ms) {
+                const progress = (data.current_track.progress_ms / data.current_track.duration_ms) * 100;
+                progressBar.style.width = progress + '%';
+            } else if (progressBar) {
+                progressBar.style.width = '0%';
+            }
+        }
+                    }
+                })
+                .fail(function() {
+                    console.log('Errore nell\'aggiornamento dello stato in tempo reale');
+                });
+        }
+        
+    // Initialize global variables for status
+    window.spotifyConnected = false;
+    window.gpioStatus = false;
+    window.gpioPin = 'N/A';
+    window.isPlaying = false;
+    
+    // Initialize status badges on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        // Set initial values from server
+        {% if status %}
+        window.spotifyConnected = {{ 'true' if status.spotify_connected else 'false' }};
+        window.gpioStatus = {{ 'true' if status.gpio_status else 'false' }};
+        window.gpioPin = '{{ status.gpio_pin or "N/A" }}';
+        window.isPlaying = {{ 'true' if status.is_playing else 'false' }};
+        {% endif %}
+        
+        updateStatusBadges();
+        
+        // Update play button icon based on current status
+        const playBtn = document.getElementById('playPauseIcon');
+        if (playBtn) {
+            playBtn.className = window.isPlaying ? 'fas fa-pause' : 'fas fa-play';
+            playBtn.style.marginLeft = window.isPlaying ? '0' : '4px';
+        }
+        
+        // Initialize pin selector with current pin
+        const pinSelect = document.getElementById('pinSelect');
+        if (pinSelect && window.gpioPin && window.gpioPin !== 'N/A') {
+            pinSelect.value = window.gpioPin;
+        }
+        
+        // Start real-time status updates every 3 seconds
+        setInterval(updateRealTimeStatus, 3000);
+        
+        // Initial real-time update after 1 second
+        setTimeout(updateRealTimeStatus, 1000);
+    });
+    
+    // Inizializzazione
+    $(document).ready(function() {
+        refreshGpioStatus();
+        loadTimePeriods();
+        
+        // Aggiorna il periodo corrente ogni minuto
+        setInterval(updateCurrentTimePeriod, 60000);
+        
+        // Gestione Enter per la password
+        $('#adminPassword').keypress(function(e) {
+            if (e.which === 13) {
+                verifyPassword();
+            }
+        });
+    });
+</script>
+{% endblock %}
