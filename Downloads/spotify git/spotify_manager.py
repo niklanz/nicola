@@ -316,8 +316,22 @@ class SpotifyManager:
         try:
             # Gestione speciale per dispositivo locale librespot
             if self.current_device_id == 'local_librespot':
-                logging.info("Controllo diretto librespot locale - pausa non gestita via API")
-                return True
+                # Verifica se abbiamo trovato il dispositivo SistemaPalestra reale
+                devices = self.sp.devices()
+                raspberry_device = None
+                for device in devices['devices']:
+                    device_name_lower = device['name'].lower()
+                    if 'sistemapalestra' in device_name_lower or device['name'] == 'SistemaPalestra':
+                        raspberry_device = device
+                        break
+                
+                if raspberry_device:
+                    # Aggiorna l'ID del dispositivo con quello reale
+                    self.current_device_id = raspberry_device['id']
+                    logging.info(f"Dispositivo SistemaPalestra trovato per pausa, aggiornato ID: {raspberry_device['id']}")
+                else:
+                    logging.info("Controllo diretto librespot locale - pausa non gestita via API")
+                    return True
                 
             self.sp.pause_playback(device_id=self.current_device_id)
             self.is_playing = False
@@ -336,8 +350,22 @@ class SpotifyManager:
         try:
             # Gestione speciale per dispositivo locale librespot
             if self.current_device_id == 'local_librespot':
-                logging.info("Controllo diretto librespot locale - stop non gestito via API")
-                return True
+                # Verifica se abbiamo trovato il dispositivo SistemaPalestra reale
+                devices = self.sp.devices()
+                raspberry_device = None
+                for device in devices['devices']:
+                    device_name_lower = device['name'].lower()
+                    if 'sistemapalestra' in device_name_lower or device['name'] == 'SistemaPalestra':
+                        raspberry_device = device
+                        break
+                
+                if raspberry_device:
+                    # Aggiorna l'ID del dispositivo con quello reale
+                    self.current_device_id = raspberry_device['id']
+                    logging.info(f"Dispositivo SistemaPalestra trovato per stop, aggiornato ID: {raspberry_device['id']}")
+                else:
+                    logging.info("Controllo diretto librespot locale - stop non gestito via API")
+                    return True
                 
             self.sp.pause_playback(device_id=self.current_device_id)
             self.is_playing = False
@@ -364,8 +392,22 @@ class SpotifyManager:
         try:
             # Gestione speciale per dispositivo locale librespot
             if self.current_device_id == 'local_librespot':
-                logging.info("Controllo diretto librespot locale - next non gestito via API")
-                return True
+                # Verifica se abbiamo trovato il dispositivo SistemaPalestra reale
+                devices = self.sp.devices()
+                raspberry_device = None
+                for device in devices['devices']:
+                    device_name_lower = device['name'].lower()
+                    if 'sistemapalestra' in device_name_lower or device['name'] == 'SistemaPalestra':
+                        raspberry_device = device
+                        break
+                
+                if raspberry_device:
+                    # Aggiorna l'ID del dispositivo con quello reale
+                    self.current_device_id = raspberry_device['id']
+                    logging.info(f"Dispositivo SistemaPalestra trovato per next, aggiornato ID: {raspberry_device['id']}")
+                else:
+                    logging.info("Controllo diretto librespot locale - next non gestito via API")
+                    return True
                 
             self.sp.next_track(device_id=self.current_device_id)
             logging.info("Traccia successiva")
@@ -383,8 +425,22 @@ class SpotifyManager:
         try:
             # Gestione speciale per dispositivo locale librespot
             if self.current_device_id == 'local_librespot':
-                logging.info("Controllo diretto librespot locale - previous non gestito via API")
-                return True
+                # Verifica se abbiamo trovato il dispositivo SistemaPalestra reale
+                devices = self.sp.devices()
+                raspberry_device = None
+                for device in devices['devices']:
+                    device_name_lower = device['name'].lower()
+                    if 'sistemapalestra' in device_name_lower or device['name'] == 'SistemaPalestra':
+                        raspberry_device = device
+                        break
+                
+                if raspberry_device:
+                    # Aggiorna l'ID del dispositivo con quello reale
+                    self.current_device_id = raspberry_device['id']
+                    logging.info(f"Dispositivo SistemaPalestra trovato per previous, aggiornato ID: {raspberry_device['id']}")
+                else:
+                    logging.info("Controllo diretto librespot locale - previous non gestito via API")
+                    return True
                 
             self.sp.previous_track(device_id=self.current_device_id)
             logging.info("Traccia precedente")
