@@ -679,14 +679,14 @@ def update_system_status():
     if spotify_manager:
         try:
             current_playback = spotify_manager.get_current_playback()
-            if current_playback and current_playback.get('item'):
-                track = current_playback['item']
+            if current_playback:
                 system_status['current_track'] = {
-                    'name': track['name'],
-                    'artist': ', '.join([artist['name'] for artist in track['artists']]),
+                    'name': current_playback.get('name'),
+                    'artist': current_playback.get('artist'),
+                    'album_image': current_playback.get('album_image'),
                     'is_playing': current_playback.get('is_playing', False),
                     'progress_ms': current_playback.get('progress_ms', 0),
-                    'duration_ms': track.get('duration_ms', 0)
+                    'duration_ms': current_playback.get('duration_ms', 0)
                 }
             else:
                 system_status['current_track'] = None

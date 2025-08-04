@@ -236,6 +236,7 @@ class SpotifyManager:
                 'name': 'Demo Track',
                 'artist': 'Demo Artist',
                 'album': 'Demo Album',
+                'album_image': 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMzAwIiBoZWlnaHQ9IjMwMCIgZmlsbD0iIzFkYjk1NCIvPjx0ZXh0IHg9IjE1MCIgeT0iMTUwIiBmb250LWZhbWlseT0iQXJpYWwsIHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGZpbGw9IndoaXRlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBkeT0iLjNlbSI+RGVtbyBBbGJ1bTwvdGV4dD48L3N2Zz4=',
                 'duration_ms': 180000,
                 'progress_ms': 45000,
                 'is_playing': True,
@@ -249,10 +250,14 @@ class SpotifyManager:
             current = self.sp.current_playback()
             if current and current.get('item'):
                 track = current['item']
+                album_images = track['album'].get('images', [])
+                album_image_url = album_images[0]['url'] if album_images else None
+                
                 return {
                     'name': track['name'],
                     'artist': ', '.join([artist['name'] for artist in track['artists']]),
                     'album': track['album']['name'],
+                    'album_image': album_image_url,
                     'duration_ms': track['duration_ms'],
                     'progress_ms': current.get('progress_ms', 0),
                     'is_playing': current.get('is_playing', False),
