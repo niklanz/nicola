@@ -404,8 +404,11 @@
                         Per utilizzare Spotify, devi autorizzare l'applicazione ad accedere al tuo account.
                     </div>
                     <div class="text-center">
-                        <button class="btn btn-success btn-lg" onclick="startSpotifyAuth()">
+                        <button class="btn btn-success btn-lg me-2" onclick="startSpotifyAuth()">
                             <i class="fab fa-spotify"></i> Autorizza con Spotify
+                        </button>
+                        <button class="btn btn-danger" onclick="disconnectSpotify()">
+                            <i class="fas fa-unlink"></i> Disconnetti
                         </button>
                     </div>
                     <div class="mt-3">
@@ -427,8 +430,11 @@
                         </div>
                     </div>
                     <div class="text-center mt-3">
-                        <button class="btn btn-warning" onclick="reauthorizeSpotify()">
+                        <button class="btn btn-warning me-2" onclick="reauthorizeSpotify()">
                             <i class="fas fa-redo"></i> Riautorizza
+                        </button>
+                        <button class="btn btn-danger" onclick="disconnectSpotify()">
+                            <i class="fas fa-unlink"></i> Disconnetti
                         </button>
                     </div>
                 </div>
@@ -1032,6 +1038,25 @@
         }
     }
     
+    function disconnectSpotify() {
+        if (confirm('Sei sicuro di voler disconnettere Spotify? Dovrai riautorizzare per utilizzare nuovamente il servizio.')) {
+            makeApiCall('spotify/disconnect', 'POST')
+                .done(function(data) {
+                    if (data.success) {
+                        showAlert(data.message, 'success');
+                        // Chiudi il modal e aggiorna lo stato
+                        $('#spotifyAuthModal').modal('hide');
+                        updateRealTimeStatus();
+                    } else {
+                        showAlert('Errore nella disconnessione: ' + (data.error || 'Errore sconosciuto'), 'danger');
+                    }
+                })
+                .fail(function() {
+                    showAlert('Errore di connessione durante la disconnessione', 'danger');
+                });
+        }
+    }
+    
     function verifyPassword() {
         const password = $('#adminPassword').val();
         
@@ -1254,155 +1279,5 @@
     window.gpioStatus = false;
     window.gpioPin = 'N/A';
     window.isPlaying = false;
-    
-    // Initialize status badges on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        // Set initial values from server
-        {% if status %}
-        window.spotifyConnected = {{ 'true' if status.spotify_connected else 'false' }};
-        window.gpioStatus = {{ 'true' if status.gpio_status else 'false' }};
-        window.gpioPin = '{{ status.gpio_pin or "N/A" }}';
-        window.isPlaying = {{ 'true' if status.is_playing else 'false' }};
-        {% endif %}
-        
-        updateStatusBadges();
-        
-        // Update play button icon based on current status
-        const playBtn = document.getElementById('playPauseIcon');
-        if (playBtn) {
-            playBtn.className = window.isPlaying ? 'fas fa-pause' : 'fas fa-play';
-            playBtn.style.marginLeft = window.isPlaying ? '0' : '4px';
-        }
-        
-        // Initialize pin selector with current pin
-        const pinSelect = document.getElementById('pinSelect');
-        if (pinSelect && window.gpioPin && window.gpioPin !== 'N/A') {
-            pinSelect.value = window.gpioPin;
-        }
-        
-        // Start real-time status updates every 3 seconds
-        setInterval(updateRealTimeStatus, 3000);
-        
-        // Initial real-time update after 1 second
-        setTimeout(updateRealTimeStatus, 1000);
-        
-        // Load logo status on page load
-        loadLogoStatus();
-    });
-    
-    // Logo management functions
-    function loadLogoStatus() {
-        makeApiCall('logo/status')
-            .done(function(data) {
-                if (data.has_logo) {
-                    showLogoPreview(data.logo_url);
-                    showMainPageLogo(data.logo_url);
-                }
-            })
-            .fail(function() {
-                console.log('Errore nel caricamento stato logo');
-            });
-    }
-    
-    function showMainPageLogo(logoUrl) {
-        const mainLogoContainer = document.getElementById('mainPageLogoContainer');
-        if (mainLogoContainer) {
-            mainLogoContainer.innerHTML = '<img src="' + logoUrl + '" style="max-width: 150px; max-height: 60px; object-fit: contain; opacity: 0.8;" alt="Logo personalizzato">';
-        }
-    }
-    
-    function previewLogo() {
-        const fileInput = document.getElementById('logoFile');
-        const file = fileInput.files[0];
-        
-        if (file) {
-            // Validate file type
-            const allowedTypes = ['image/png', 'image/svg+xml'];
-            if (allowedTypes.indexOf(file.type) === -1) {
-                showAlert('Formato file non supportato. Usa PNG o SVG.', 'warning');
-                fileInput.value = '';
-                return;
-            }
-            
-            // Validate file size (16MB)
-            if (file.size > 16 * 1024 * 1024) {
-                showAlert('File troppo grande. Dimensione massima: 16MB.', 'warning');
-                fileInput.value = '';
-                return;
-            }
-            
-            // Upload the file
-            const formData = new FormData();
-            formData.append('logo', file);
-            
-            $.ajax({
-                url: '/api/logo/upload',
-                type: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(data) {
-                    if (data.success) {
-                        showAlert(data.message, 'success');
-                        showLogoPreview(data.logo_url);
-                        showMainPageLogo(data.logo_url);
-                    } else {
-                        showAlert(data.error || 'Errore nell upload del logo', 'danger');
-                    }
-                },
-                error: function() {
-                    showAlert('Errore di connessione durante l upload', 'danger');
-                }
-            });
-        }
-    }
-    
-    function showLogoPreview(logoUrl) {
-        const preview = document.getElementById('logoPreview');
-        if (preview) {
-            preview.innerHTML = '<img src="' + logoUrl + '" style="max-width: 100%; max-height: 60px; object-fit: contain;" alt="Logo personalizzato">';
-        }
-    }
-    
-    function removeLogo() {
-        if (confirm('Sei sicuro di voler rimuovere il logo personalizzato?')) {
-            makeApiCall('logo/remove', 'POST')
-                .done(function(data) {
-                    if (data.success) {
-                        showAlert(data.message, 'success');
-                        const preview = document.getElementById('logoPreview');
-                        if (preview) {
-                            preview.innerHTML = '<span style="color: #888; font-size: 12px;">Nessun logo caricato</span>';
-                        }
-                        const mainLogoContainer = document.getElementById('mainPageLogoContainer');
-                        if (mainLogoContainer) {
-                            mainLogoContainer.innerHTML = '';
-                        }
-                        document.getElementById('logoFile').value = '';
-                    } else {
-                        showAlert(data.error || 'Errore nella rimozione del logo', 'danger');
-                    }
-                })
-                .fail(function() {
-                    showAlert('Errore di connessione', 'danger');
-                });
-        }
-    }
-    
-    // Inizializzazione
-    $(document).ready(function() {
-        refreshGpioStatus();
-        loadTimePeriods();
-        
-        // Aggiorna il periodo corrente ogni minuto
-        setInterval(updateCurrentTimePeriod, 60000);
-        
-        // Gestione Enter per la password
-        $('#adminPassword').keypress(function(e) {
-            if (e.which === 13) {
-                verifyPassword();
-            }
-        });
-    });
 </script>
 {% endblock %}

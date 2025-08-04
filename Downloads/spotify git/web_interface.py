@@ -601,6 +601,37 @@ def reinitialize_spotify():
         app.logger.error(f"Errore reinizializzazione Spotify: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/spotify/disconnect', methods=['POST'])
+@login_required
+def disconnect_spotify():
+    """Disconnette Spotify e rimuove l'autorizzazione"""
+    try:
+        global spotify_manager
+        
+        if spotify_manager and hasattr(spotify_manager, 'disconnect_spotify'):
+            success = spotify_manager.disconnect_spotify()
+            if success:
+                # Aggiorna lo stato del sistema
+                system_status['spotify_connected'] = False
+                return jsonify({
+                    'success': True,
+                    'message': 'Spotify disconnesso con successo. Ricarica la pagina per riautorizzare.'
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'error': 'Errore nella disconnessione'
+                }), 500
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Spotify Manager non disponibile'
+            }), 500
+            
+    except Exception as e:
+        app.logger.error(f"Errore disconnessione Spotify: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/logo/upload', methods=['POST'])
 @login_required
 def upload_logo():

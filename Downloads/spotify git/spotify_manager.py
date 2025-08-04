@@ -97,10 +97,42 @@ class SpotifyManager:
             
         try:
             devices = self.sp.devices()
-            if not devices or not devices.get('devices'):
+            device_list = devices.get('devices', []) if devices else []
+            
+            # Aggiungi sempre il dispositivo locale librespot se non è già presente
+            local_device_names = ['RaspberryPi', 'SistemaPalestra']
+            local_device_found = False
+            
+            for device in device_list:
+                if device['name'] in local_device_names:
+                    local_device_found = True
+                    break
+            
+            # Se il dispositivo locale non è trovato, aggiungilo manualmente
+            if not local_device_found:
+                # Controlla se librespot è in esecuzione
+                import subprocess
+                try:
+                    result = subprocess.run(['pgrep', 'librespot'], capture_output=True, text=True)
+                    if result.returncode == 0:  # librespot è in esecuzione
+                        local_device = {
+                            'id': 'local_librespot',
+                            'name': 'RaspberryPi (Locale)',
+                            'type': 'Computer',
+                            'is_active': False,
+                            'is_private_session': False,
+                            'is_restricted': False,
+                            'volume_percent': 70
+                        }
+                        device_list.append(local_device)
+                        logging.info("Dispositivo librespot locale aggiunto alla lista")
+                except Exception as e:
+                    logging.warning(f"Impossibile verificare stato librespot: {e}")
+            
+            if not device_list:
                 logging.warning("Nessun dispositivo Spotify attivo trovato. Assicurati che un'app Spotify sia aperta e attiva.")
-                return []
-            return devices['devices']
+                
+            return device_list
         except Exception as e:
             logging.error(f"Errore nel recupero dispositivi: {e}")
             return []
@@ -117,6 +149,11 @@ class SpotifyManager:
             return False
             
         try:
+            # Gestione speciale per dispositivo locale librespot
+            if self.current_device_id == 'local_librespot':
+                logging.info("Controllo diretto librespot locale - riproduzione non gestita via API")
+                return True
+                
             if not self.current_device_id:
                 self._find_device()
                 if not self.current_device_id:
@@ -154,6 +191,11 @@ class SpotifyManager:
             return False
             
         try:
+            # Gestione speciale per dispositivo locale librespot
+            if self.current_device_id == 'local_librespot':
+                logging.info("Controllo diretto librespot locale - pausa non gestita via API")
+                return True
+                
             self.sp.pause_playback(device_id=self.current_device_id)
             self.is_playing = False
             logging.info("Riproduzione in pausa")
@@ -169,6 +211,11 @@ class SpotifyManager:
             return False
             
         try:
+            # Gestione speciale per dispositivo locale librespot
+            if self.current_device_id == 'local_librespot':
+                logging.info("Controllo diretto librespot locale - stop non gestito via API")
+                return True
+                
             self.sp.pause_playback(device_id=self.current_device_id)
             self.is_playing = False
             logging.info("Riproduzione fermata")
@@ -192,6 +239,11 @@ class SpotifyManager:
             return False
             
         try:
+            # Gestione speciale per dispositivo locale librespot
+            if self.current_device_id == 'local_librespot':
+                logging.info("Controllo diretto librespot locale - next non gestito via API")
+                return True
+                
             self.sp.next_track(device_id=self.current_device_id)
             logging.info("Traccia successiva")
             return True
@@ -206,6 +258,11 @@ class SpotifyManager:
             return False
             
         try:
+            # Gestione speciale per dispositivo locale librespot
+            if self.current_device_id == 'local_librespot':
+                logging.info("Controllo diretto librespot locale - previous non gestito via API")
+                return True
+                
             self.sp.previous_track(device_id=self.current_device_id)
             logging.info("Traccia precedente")
             return True
@@ -221,6 +278,21 @@ class SpotifyManager:
             
         try:
             volume = max(0, min(100, volume))  # Limita tra 0 e 100
+            
+            # Gestione speciale per dispositivo locale librespot
+            if self.current_device_id == 'local_librespot':
+                # Usa amixer per controllare il volume locale
+                import subprocess
+                try:
+                    subprocess.run(['amixer', 'set', 'Master', f'{volume}%'], 
+                                 capture_output=True, check=True)
+                    self.volume_level = volume
+                    logging.info(f"Volume locale impostato a: {volume}%")
+                    return True
+                except subprocess.CalledProcessError as e:
+                    logging.error(f"Errore nel controllo volume locale: {e}")
+                    return False
+                    
             self.sp.volume(volume, device_id=self.current_device_id)
             self.volume_level = volume
             logging.info(f"Volume impostato a: {volume}")
@@ -335,4 +407,36 @@ class SpotifyManager:
             return False
         except Exception as e:
             logging.error(f"Errore nella reinizializzazione Spotify: {e}")
+            return False
+    
+    def disconnect_spotify(self):
+        """Disconnette Spotify e rimuove l'autorizzazione"""
+        try:
+            if self.demo_mode:
+                logging.info("Modalità demo: disconnessione simulata")
+                return True
+                
+            # Rimuovi il file di cache del token
+            cache_path = ".spotify_cache"
+            if os.path.exists(cache_path):
+                os.remove(cache_path)
+                logging.info("File cache Spotify rimosso")
+            
+            # Backup del file cache se esiste
+            backup_path = ".spotify_cache.backup"
+            if os.path.exists(backup_path):
+                os.remove(backup_path)
+                logging.info("File backup cache Spotify rimosso")
+            
+            # Reset delle variabili
+            self.sp = None
+            self.sp_oauth = None
+            self.current_device_id = None
+            self.is_playing = False
+            
+            logging.info("Spotify disconnesso con successo")
+            return True
+            
+        except Exception as e:
+            logging.error(f"Errore nella disconnessione Spotify: {e}")
             return False
