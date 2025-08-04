@@ -117,7 +117,7 @@ class SpotifyManager:
                     if result.returncode == 0:  # librespot è in esecuzione
                         local_device = {
                             'id': 'local_librespot',
-                            'name': 'RaspberryPi (Locale)',
+                            'name': 'SistemaPalestra',
                             'type': 'Computer',
                             'is_active': False,
                             'is_private_session': False,
@@ -138,9 +138,118 @@ class SpotifyManager:
             return []
             
     def set_device(self, device_id: str):
-        """Imposta il dispositivo attivo"""
-        self.current_device_id = device_id
-        logging.info(f"Dispositivo impostato: {device_id}")
+        """Imposta il dispositivo attivo e trasferisce la riproduzione"""
+        if not self.sp:
+            logging.error("Spotify client non inizializzato")
+            return False
+            
+        try:
+            # Gestione speciale per dispositivo locale librespot
+            if device_id == 'local_librespot':
+                # Verifica se librespot è in esecuzione
+                import subprocess
+                try:
+                    result = subprocess.run(['pgrep', 'librespot'], capture_output=True, text=True)
+                    if result.returncode != 0:  # librespot non è in esecuzione
+                        logging.warning("Librespot non in esecuzione, tentativo di avvio...")
+                        # Prova ad avviare librespot
+                        subprocess.Popen([
+                            'librespot',
+                            '--name', 'RaspberryPi',
+                            '--bitrate', '320',
+                            '--device-type', 'speaker',
+                            '--backend', 'alsa',
+                            '--mixer', 'softvol',
+                            '--initial-volume', '70',
+                            '--volume-ctrl', 'linear',
+                            '--cache', '/tmp/librespot-cache',
+                            '--enable-volume-normalisation',
+                            '--normalisation-pregain', '-10'
+                        ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                        
+                        # Attendi che librespot si avvii
+                        time.sleep(3)
+                        
+                        # Verifica nuovamente
+                        result = subprocess.run(['pgrep', 'librespot'], capture_output=True, text=True)
+                        if result.returncode != 0:
+                            logging.error("Impossibile avviare librespot")
+                            return False
+                        else:
+                            logging.info("Librespot avviato con successo")
+                    
+                    # Attendi che il dispositivo sia disponibile in Spotify
+                    time.sleep(2)
+                    
+                    # Cerca il dispositivo SistemaPalestra nei dispositivi Spotify
+                    devices = self.sp.devices()
+                    raspberry_device = None
+                    for device in devices['devices']:
+                        device_name_lower = device['name'].lower()
+                        if 'sistemapalestra' in device_name_lower or device['name'] == 'SistemaPalestra':
+                            raspberry_device = device
+                            break
+                    
+                    if raspberry_device:
+                        # Trasferisci la riproduzione al dispositivo SistemaPalestra
+                        self.sp.transfer_playback(device_id=raspberry_device['id'], force_play=True)
+                        logging.info(f"Riproduzione trasferita al dispositivo SistemaPalestra: {raspberry_device['id']}")
+                        # Salva l'ID del dispositivo reale per future operazioni
+                        self.current_device_id = raspberry_device['id']
+                        return True
+                    else:
+                        logging.warning("Dispositivo SistemaPalestra non trovato nei dispositivi Spotify disponibili")
+                        logging.info("Tentativo di avviare riproduzione direttamente su librespot...")
+                        
+                        # Prova a riprodurre musica direttamente se c'è una riproduzione attiva
+                        try:
+                            current_playback = self.sp.current_playback()
+                            if current_playback and current_playback['is_playing']:
+                                # Pausa la riproduzione corrente
+                                self.sp.pause_playback()
+                                time.sleep(1)
+                                
+                                # Riprendi su qualsiasi dispositivo disponibile per "forzare" l'aggiornamento
+                                devices = self.sp.devices()
+                                if devices['devices']:
+                                    available_device = devices['devices'][0]
+                                    self.sp.transfer_playback(device_id=available_device['id'], force_play=True)
+                                    time.sleep(2)
+                                    
+                                    # Ricontrolla se ora SistemaPalestra è disponibile
+                                    devices = self.sp.devices()
+                                    for device in devices['devices']:
+                                        device_name_lower = device['name'].lower()
+                                        if 'sistemapalestra' in device_name_lower or device['name'] == 'SistemaPalestra':
+                                            self.sp.transfer_playback(device_id=device['id'], force_play=True)
+                                            self.current_device_id = device['id']
+                                            logging.info(f"SistemaPalestra ora disponibile: {device['id']}")
+                                            return True
+                        except Exception as e:
+                            logging.error(f"Errore nel tentativo di attivazione: {e}")
+                        
+                        # Fallback: imposta comunque come dispositivo locale
+                        self.current_device_id = device_id
+                        logging.info("Dispositivo impostato come locale - controllare manualmente su Spotify")
+                        return True
+                    
+                    self.current_device_id = device_id
+                    logging.info(f"Dispositivo locale impostato: {device_id}")
+                    return True
+                    
+                except Exception as e:
+                    logging.error(f"Errore nella gestione librespot: {e}")
+                    return False
+                
+            # Per dispositivi Spotify normali, trasferisci la riproduzione
+            self.sp.transfer_playback(device_id=device_id, force_play=False)
+            self.current_device_id = device_id
+            logging.info(f"Riproduzione trasferita al dispositivo: {device_id}")
+            return True
+            
+        except Exception as e:
+            logging.error(f"Errore nel trasferimento al dispositivo {device_id}: {e}")
+            return False
         
     def play_music(self, playlist_uri: Optional[str] = None):
         """Avvia la riproduzione musicale"""
@@ -151,8 +260,22 @@ class SpotifyManager:
         try:
             # Gestione speciale per dispositivo locale librespot
             if self.current_device_id == 'local_librespot':
-                logging.info("Controllo diretto librespot locale - riproduzione non gestita via API")
-                return True
+                # Verifica se abbiamo trovato il dispositivo SistemaPalestra reale
+                devices = self.sp.devices()
+                raspberry_device = None
+                for device in devices['devices']:
+                    device_name_lower = device['name'].lower()
+                    if 'sistemapalestra' in device_name_lower or device['name'] == 'SistemaPalestra':
+                        raspberry_device = device
+                        break
+                
+                if raspberry_device:
+                    # Aggiorna l'ID del dispositivo con quello reale
+                    self.current_device_id = raspberry_device['id']
+                    logging.info(f"Dispositivo SistemaPalestra trovato, aggiornato ID: {raspberry_device['id']}")
+                else:
+                    logging.info("Controllo diretto librespot locale - riproduzione non gestita via API")
+                    return True
                 
             if not self.current_device_id:
                 self._find_device()
