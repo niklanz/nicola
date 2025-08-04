@@ -9,8 +9,8 @@ import json
 from datetime import datetime
 
 # Current version
-VERSION = "1.2.0"
-BUILD_DATE = "2025-08-03"
+VERSION = "1.2.1"
+BUILD_DATE = "2025-08-04"
 
 def get_version():
     """Get current version string"""
